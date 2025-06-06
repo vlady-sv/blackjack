@@ -20,6 +20,7 @@ void verHistorial(fstream* record);
 void start(fstream* record);
 bool jugar(char* name, bool nom);
 void darCartas(bool wPlay, int cont, int cart);
+void crearMazo();
 
 int main(){
     fstream* record;
@@ -59,6 +60,7 @@ void start(fstream* record){
     nom = false;
 
     do{
+        crearMazo();
         result = jugar(name, nom);
         //si ya se registro lo cambia a true por si el jugador quiere volver a jugar con el mismo nombre
         nom = true;
@@ -156,4 +158,8 @@ void verHistorial(fstream record){
             cout << endl;
         }
     }
+}
+
+void crearMazo(){
+
 }
