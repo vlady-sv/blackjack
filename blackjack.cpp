@@ -9,6 +9,12 @@ using namespace std;
 
 enum elem{DIAMANTES=1, CORAZONES=2, PICAS=3, TREBOLES=4};
 
+struct Juego{
+    int valor;
+    string symbol;
+    elem elemen;
+};
+
 struct Nodo{
     Juego mano;
     Nodo *siguiente;
@@ -19,34 +25,28 @@ struct Lista{
     int numElemen;
 };
 
-struct Juego{
-    int valor;
-    char symbol;
-    elem elemen;
-};
-
 void registroUser(char* nombre);
-void verHistorial(fstream* record);
-void start(fstream* record);
-bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo, Juego& jMazo);
-void darCartas(bool wPlay, int cont, int cart, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo, Juego& jMazo);
+void verHistorial(fstream& record);
+void start(fstream& record);
+bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo);
+void darCartas(bool wPlay, int cart, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo);
 void crearMazo(Lista* mazo, Juego& jMazo);
 Nodo* crearNodo(const Juego& jMano);
-void elementos(Lista*, Juego &jMazo);
+void elementos(Lista*, elem elemento);
 void insertarFinal(Lista* lista , const Juego& jMano);
-void actualizarHistorial(fstream* record, bool resultado, const char* nombre);
+void actualizarHistorial(fstream& record, bool resultado, const char* nombre);
 void liberarMemoria(Lista* lista);
 
 int main(){
-    fstream* record;
-    int *ncarUser, *ncarCru, *ca, opcion;
-    bool result;
-    char resp;
-
-    cout << "\t\t---> BIENVENIDO <---";
-    cout << "\t\t\n\nBLACKJACK";
+    srand(time(0));
+    fstream record;
+    int opcion;
 
     do{
+        cout << "\t\t---> BIENVENIDO <---";
+        cout << "\t\t\n\nBLACKJACK";
+
+    
         cout << "\t\n\n\nJUGAR [1]";
         cout << "\t\n\n\nVER HISTORIAL DE REGISTROS [2]";
         cout << "\t\n\n\nSALIR DEL JUEGO [0]";
@@ -90,7 +90,7 @@ void insertarFinal(Lista* lista , const Juego& jMano){
     lista -> numElemen++;
 }
 
-void start(fstream* record){
+void start(fstream& record){
     char resp, resNom;
     bool result, nom;
     //nom es para saber si se quiere registrar el nombre del usuario
@@ -98,17 +98,20 @@ void start(fstream* record){
 
     do{
         Lista* user = new Lista;
+        user -> cabeza = nullptr;
         user -> numElemen = 0;
         Lista* banca = new Lista;
+        banca -> cabeza = nullptr;
         banca -> numElemen = 0;
         Lista* mazo = new Lista;
+        mazo -> cabeza = nullptr;
         mazo -> numElemen = 0;
         Juego mUser;
         Juego mBanca;
         Juego jMazo;
         char name[30];  
         crearMazo(mazo, jMazo);
-        result = jugar(name, nom, user, mUser, banca, mBanca, mazo, jMazo);
+        result = jugar(name, nom, user, mUser, banca, mBanca, mazo);
         //si ya se registro lo cambia a true por si el jugador quiere volver a jugar con el mismo nombre
         nom = true;
         if(result == true){
@@ -116,6 +119,7 @@ void start(fstream* record){
         }else{
             cout << "LO SIENTO" << name << ", PERDISTE";
         }
+        actualizarHistorial(record, result, name);
 
         do{
             cout << "Quieres volver a jugar? s/n:";
@@ -153,18 +157,20 @@ void crearMazo(Lista* mazo, Juego& jMazo){
     const int cartas = 52;
     int elemento, contDiam, contCor, contPic, contTreb;
     contDiam=contCor=contPic=contTreb=0;
-    bool band = false;
+
     //Creamos 52 nodos vacios para llenarlo con los valores de todas las cartas
     for(int i=0; i<cartas; i++){
         insertarFinal(mazo, jMazo);
     }
-    //Llenamos todas las casillas de valor con NULL para una verficacion mas adelante
-    for(int i=0; i<mazo->numElemen; i++){
-        jMazo.valor = NULL;
+    //Llenamos todas las casillas de valor con 0 para una verficacion mas adelante
+    Nodo* aux = mazo -> cabeza;
+    while(aux != nullptr){
+        aux -> mano.valor = 0;
+        aux = aux -> siguiente;
     }
 
     Nodo* actual = mazo -> cabeza;
-    while(band != true){
+    while(actual != nullptr){
         elemento = 1 + rand()%(4+1-1);
         switch(elemento){
             case 1: 
@@ -196,20 +202,18 @@ void crearMazo(Lista* mazo, Juego& jMazo){
                 }
                 break; 
         }
-        if(contDiam == 13 && contCor == 13 && contPic == 13 && contTreb == 13){
-            band = true;
-        }
+        actual = actual -> siguiente;
     }
 
     for(int i=0; i<4; i++){
         switch(i){
-            case 0: elementos(mazo, jMazo, DIAMANTES);
+            case 0: elementos(mazo, DIAMANTES);
                 break;
-            case 1: elementos(mazo, jMazo, CORAZONES);
+            case 1: elementos(mazo, CORAZONES);
                 break;
-            case 2: elementos(mazo, jMazo, PICAS);
+            case 2: elementos(mazo, PICAS);
                 break;
-            case 3: elementos(mazo, jMazo, TREBOLES);
+            case 3: elementos(mazo, TREBOLES);
                 break;
         }
     }
@@ -219,7 +223,7 @@ void crearMazo(Lista* mazo, Juego& jMazo){
 }
 
 //Asignando los elementos en el mazo
-void elementos(Lista* mazo, Juego &jMazo, elem elemento){
+void elementos(Lista* mazo, elem elemento){
     const int nCart = 13;
     Nodo* actual = mazo -> cabeza;
     int vec[nCart] = {0};
@@ -229,9 +233,10 @@ void elementos(Lista* mazo, Juego &jMazo, elem elemento){
     for(int i=0; i< nCart; i++){
         band = false;
         auxCarta = 1 + rand()%(13+1-1);
+        //Verificamos si el valor ya existe en nuestro vector
         for(int j=0; j<nCart; j++){
-            if(vec[i] == auxCarta){
-                band == true;
+            if(vec[j] == auxCarta){
+                band = true;
                 break;
             }
         }
@@ -245,7 +250,7 @@ void elementos(Lista* mazo, Juego &jMazo, elem elemento){
         }
 
         while(actual != nullptr){
-            if(actual -> mano.elemen == elemento && actual -> mano.valor != NULL){
+            if(actual -> mano.elemen == elemento && actual -> mano.valor != 0){
                 switch(vec[i]){
                     case 1:
                         actual ->mano.symbol = 'A';
@@ -284,7 +289,7 @@ void elementos(Lista* mazo, Juego &jMazo, elem elemento){
                         actual ->mano.valor = 9;
                         break;
                     case 10:
-                        actual ->mano.symbol = '10';
+                        actual ->mano.symbol = "10";
                         actual ->mano.valor = 10;
                         break;
                     case 11:
@@ -308,13 +313,11 @@ void elementos(Lista* mazo, Juego &jMazo, elem elemento){
 }
 
 //Funcion para empezar el juego
-bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo, Juego& jMazo){
+bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo){
     string aux;
     bool whoPlay = true;  //whoPlay es para saber si esta jugando el usuario=User o la banca=false
-    int cUser, cBan, cart=2, puntBanca, puntUser, selec;
+    int cart=2, puntBanca, puntUser, selec;
     puntBanca=puntUser=0;
-    cUser=cBan=1;
-    char resp = 's';
 
     //Registro de un usuario
     if(nom == false){
@@ -323,15 +326,15 @@ bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Jue
 
     for(int i=0; i<cart; i++){
         if(whoPlay == true){
-            darCartas(whoPlay, cUser, cart, user, manoUser, banca, manoBanca, mazo, jMazo);
+            darCartas(whoPlay, cart, user, manoUser, banca, manoBanca, mazo);
             whoPlay=false;
         }else{
-            darCartas(whoPlay,cBan, cart, user, manoUser, banca, manoBanca, mazo, jMazo);
+            darCartas(whoPlay, cart, user, manoUser, banca, manoBanca, mazo);
         }
     }
     cart=0;
 
-    cout << setw(15) << "BANCA";
+    cout << setw(15) << "BANCA" << endl;
     for(int i=0; i<banca->numElemen; i++){
         switch(manoBanca.elemen){
             case DIAMANTES: aux = "Diamantes";
@@ -373,59 +376,40 @@ bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Jue
     cout << setw(10) << "Puntuacion del usuario: " << puntUser;
 
     //Turno del usuario
-    while(resp != 's' || resp != 'S'){
+    while(true){
         puntUser = 0;
         cout << "[1] Pedir carta" << endl;
         cout << "[2] Plantarse" << endl;
         cout << "Elige una opcion: ";
+        cin >> selec;
 
         if(selec == 2){
             break;
         }else{
             cart = 1;
             whoPlay = true;
-            darCartas(whoPlay, cUser, cart, user, manoUser, banca, manoBanca, mazo, jMazo);
+            darCartas(whoPlay, cart, user, manoUser, banca, manoBanca, mazo);
         }
-        for(int i=0; i<user->numElemen; i++){
-            switch(manoUser.elemen){
-                case DIAMANTES: aux = "Diamantes";
-                    break;
-                case CORAZONES: aux = "Corazones";
-                    break;
-                case PICAS: aux = "Picas";
-                    break;
-                case TREBOLES:  aux = "Treboles";
-                    break;  
-            }
+        Nodo* temp = user->cabeza;  // Corrección: Se recorre la lista enlazada
+        while (temp != nullptr) {
+            manoUser = temp->mano; 
+            temp = temp->siguiente;
+        }
     
-            cout << setw(10) << manoUser.symbol << " de " << aux;
-            cout << endl;
-            puntUser = puntUser + manoUser.valor;
-        }
+        cout << setw(10) << manoUser.symbol << " de " << aux;
+        cout << endl;
+        puntUser = puntUser + manoUser.valor;
+
         if(puntUser > 21){
-            for(int i=0; i<user->numElemen; i++){
-                if(manoUser.symbol == 'A' && manoUser.valor == 11){
-                    manoUser.valor = 1;
+            temp = user->cabeza;
+            while(temp != nullptr){
+                if(temp->mano.symbol == "A" && temp->mano.valor == 11){
+                    temp->mano.valor = 1; 
                 }
+                temp = temp->siguiente;
             }
         }
-        puntUser = 0;
-        for(int i=0; i<user->numElemen; i++){
-            switch(manoUser.elemen){
-                case DIAMANTES: aux = "Diamantes";
-                    break;
-                case CORAZONES: aux = "Corazones";
-                    break;
-                case PICAS: aux = "Picas";
-                    break;
-                case TREBOLES:  aux = "Treboles";
-                    break;  
-            }
-    
-            cout << setw(10) << manoUser.symbol << " de " << aux;
-            cout << endl;
-            puntUser = puntUser + manoUser.valor;
-        }
+        
         cout << setw(10) << "Nueva puntuacion del usuario: " << puntUser;
         if(puntUser == 21 || puntUser > 21){
             break;
@@ -433,37 +417,32 @@ bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Jue
     }
 
     //Turno de la banca
-    while(resp != 's' || resp != 'S'){
+    while(true){
         if(puntUser > 21){
             return false;
         }
         if(puntBanca < 17){
             cart = 1;
             whoPlay = false;
-            darCartas(whoPlay, cUser, cart, user, manoUser, banca, manoBanca, mazo, jMazo);
+            darCartas(whoPlay, cart, user, manoUser, banca, manoBanca, mazo);
         }
-        puntBanca = 0;
-        for(int i=0; i<banca->numElemen; i++){
-            switch(manoBanca.elemen){
-                case DIAMANTES: aux = "Diamantes";
-                    break;
-                case CORAZONES: aux = "Corazones";
-                    break;
-                case PICAS: aux = "Picas";
-                    break;
-                case TREBOLES:  aux = "Treboles";
-                    break;  
-            }
+
+        Nodo* temp = banca->cabeza;
+        while (temp != nullptr) {
+            manoBanca = temp->mano; 
+            temp = temp->siguiente;
+        }
     
-            cout << setw(10) << manoBanca.symbol << " de " << aux;
-            cout << endl;
-            puntBanca = puntBanca + manoBanca.valor;
-        }
+        cout << setw(10) << manoBanca.symbol << " de " << aux;
+        cout << endl;
+        puntBanca = puntBanca + manoBanca.valor;
         if(puntBanca > 21){
-            for(int i=0; i<banca->numElemen; i++){
-                if(manoBanca.symbol == 'A' && manoBanca.valor == 11){
-                    manoBanca.valor = 1;
+            temp = banca->cabeza;
+            while(temp != nullptr){
+                if(temp->mano.symbol == "A" && temp->mano.valor == 11){
+                    temp->mano.valor = 1; 
                 }
+                temp = temp->siguiente;
             }
         }
         puntBanca = 0;
@@ -506,27 +485,25 @@ bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Jue
         return true;
     }
 
+    return true;
 }
 
 //Dar cartas
-void darCartas(bool wPlay, int cont, int cart, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo, Juego& jMazo){
-    srand(time(0));
+void darCartas(bool wPlay, int cart, Lista* user, Juego& manoUser, Lista* banca, Juego& manoBanca, Lista* mazo){
     int elemenMazo;
 
     if(wPlay == true){
          //Guardamos los resultados de cada vuelta en la lista correspondiente
         for(int i=0; i<cart; i++){
             Nodo* actual = mazo->cabeza;
-            elemenMazo = 52 + rand()%(52-1+1);
+            elemenMazo = 1 + rand()%(52-1+1);
             for(int j=0; j<elemenMazo; j++){
-                if(elemenMazo == j && jMazo.valor != 0){
+                if(elemenMazo == j && actual->mano.valor != 0){
                     if(user->numElemen == 0){
                         user->cabeza = actual;
                     }
-                    manoUser.elemen = jMazo.elemen;
-                    manoUser.symbol = jMazo.symbol;
-                    manoUser.valor = jMazo.valor;
-                    jMazo.valor = 0;
+                    manoUser = actual -> mano;
+                    actual -> mano.valor = 0;
 
                     user->numElemen++;
                     break;
@@ -537,15 +514,14 @@ void darCartas(bool wPlay, int cont, int cart, Lista* user, Juego& manoUser, Lis
     }else{
         for(int i=0; i<cart; i++){
             Nodo* actual = mazo->cabeza;
-            elemenMazo = 56 + rand()%(56-1+1);
+            elemenMazo = 1 + rand()%(52-1+1);
             for(int j=0; j<elemenMazo; j++){
-                if(elemenMazo == j){
+                if(elemenMazo == j && actual->mano.valor != 0){
                     if(banca->numElemen == 0){
                         banca->cabeza = actual;
                     }
-                    manoBanca.elemen = jMazo.elemen;
-                    manoBanca.symbol = jMazo.symbol;
-                    manoBanca.valor = jMazo.valor;
+                    manoBanca = actual -> mano;
+                    actual -> mano.valor = 0;
 
                     banca->numElemen++;
                     break;
@@ -557,7 +533,7 @@ void darCartas(bool wPlay, int cont, int cart, Lista* user, Juego& manoUser, Lis
 }
 
 //Ver historial de juegos
-void verHistorial(fstream record){
+void verHistorial(fstream& record){
     string records = "records.txt";
     record.open(records, ios::in);
     string jugador, resultado, fecha;
@@ -573,9 +549,10 @@ void verHistorial(fstream record){
     record.close();
 }
 
-void actualizarHistorial(fstream record, bool resultado, const char* nombre){
+void actualizarHistorial(fstream& record, bool resultado, const char* nombre){
     time_t ahora = time(0);
-    char* fecha = ctime(&ahora);
+    char fecha[30];
+    strftime(fecha, sizeof(fecha), "%Y-%m-%d %H:%M:%S", localtime(&ahora));
     string result;
     record.open("records.txt", ios::app|ios::out);
     if(!record){
@@ -601,4 +578,5 @@ void liberarMemoria(Lista* lista){
     lista -> cabeza = nullptr;
     lista -> numElemen = 0;
     delete lista;
+    lista = nullptr;
 }
