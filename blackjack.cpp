@@ -34,7 +34,8 @@ void crearMazo(Lista* mazo, Juego& jMazo);
 Nodo* crearNodo(const Juego& jMano);
 void elementos(Lista*, Juego &jMazo);
 void insertarFinal(Lista* lista , const Juego& jMano);
-void liberarMemoria();
+void actualizarHistorial(fstream* record, bool resultado, const char* nombre);
+void liberarMemoria(Lista* lista);
 
 int main(){
     fstream* record;
@@ -90,13 +91,6 @@ void insertarFinal(Lista* lista , const Juego& jMano){
 }
 
 void start(fstream* record){
-    // Lista* user = new Lista;
-    // Lista* banca = new Lista;
-    // Lista* mazo = new Lista;
-    // Juego mUser;
-    // Juego mBanca;
-    // Juego jMazo;
-    // char name[30];
     char resp, resNom;
     bool result, nom;
     //nom es para saber si se quiere registrar el nombre del usuario
@@ -138,7 +132,9 @@ void start(fstream* record){
                 nom = false;
             }
         }
-        liberarMemoria();
+        liberarMemoria(mazo);
+        liberarMemoria(user);
+        liberarMemoria(banca);
     }while(resp == 's' || resp == 'S');
 
 }
@@ -160,8 +156,11 @@ void crearMazo(Lista* mazo, Juego& jMazo){
     bool band = false;
     //Creamos 52 nodos vacios para llenarlo con los valores de todas las cartas
     for(int i=0; i<cartas; i++){
-        //Comentario para mi: Llenar todas las casillas de valor con NULL, para una verificacion mas adelante
         insertarFinal(mazo, jMazo);
+    }
+    //Llenamos todas las casillas de valor con NULL para una verficacion mas adelante
+    for(int i=0; i<mazo->numElemen; i++){
+        jMazo.valor = NULL;
     }
 
     Nodo* actual = mazo -> cabeza;
@@ -403,6 +402,30 @@ bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Jue
             cout << endl;
             puntUser = puntUser + manoUser.valor;
         }
+        if(puntUser > 21){
+            for(int i=0; i<user->numElemen; i++){
+                if(manoUser.symbol == 'A' && manoUser.valor == 11){
+                    manoUser.valor = 1;
+                }
+            }
+        }
+        puntUser = 0;
+        for(int i=0; i<user->numElemen; i++){
+            switch(manoUser.elemen){
+                case DIAMANTES: aux = "Diamantes";
+                    break;
+                case CORAZONES: aux = "Corazones";
+                    break;
+                case PICAS: aux = "Picas";
+                    break;
+                case TREBOLES:  aux = "Treboles";
+                    break;  
+            }
+    
+            cout << setw(10) << manoUser.symbol << " de " << aux;
+            cout << endl;
+            puntUser = puntUser + manoUser.valor;
+        }
         cout << setw(10) << "Nueva puntuacion del usuario: " << puntUser;
         if(puntUser == 21 || puntUser > 21){
             break;
@@ -418,6 +441,30 @@ bool jugar(char* name, bool nom, Lista* user, Juego& manoUser, Lista* banca, Jue
             cart = 1;
             whoPlay = false;
             darCartas(whoPlay, cUser, cart, user, manoUser, banca, manoBanca, mazo, jMazo);
+        }
+        puntBanca = 0;
+        for(int i=0; i<banca->numElemen; i++){
+            switch(manoBanca.elemen){
+                case DIAMANTES: aux = "Diamantes";
+                    break;
+                case CORAZONES: aux = "Corazones";
+                    break;
+                case PICAS: aux = "Picas";
+                    break;
+                case TREBOLES:  aux = "Treboles";
+                    break;  
+            }
+    
+            cout << setw(10) << manoBanca.symbol << " de " << aux;
+            cout << endl;
+            puntBanca = puntBanca + manoBanca.valor;
+        }
+        if(puntBanca > 21){
+            for(int i=0; i<banca->numElemen; i++){
+                if(manoBanca.symbol == 'A' && manoBanca.valor == 11){
+                    manoBanca.valor = 1;
+                }
+            }
         }
         puntBanca = 0;
         for(int i=0; i<banca->numElemen; i++){
@@ -509,19 +556,49 @@ void darCartas(bool wPlay, int cont, int cart, Lista* user, Juego& manoUser, Lis
     }
 }
 
+//Ver historial de juegos
 void verHistorial(fstream record){
     string records = "records.txt";
     record.open(records, ios::in);
-    string jugador, puntuacion, fecha;
+    string jugador, resultado, fecha;
     if(!record){
-        cout << "El archivo no se abrio correctamente";
+        cout << "El historial esta vacio";
     }else{
-        cout << "\n" << setw(12) << "Jugador" << setw(12) << "Puntuacion" << setw(15) << "Fecha";
-        while(record >> jugador >> puntuacion >> fecha){
-            cout << setw(12) << jugador << setw(12) << puntuacion << setw(15) << fecha;
+        cout << "\n" << setw(12) << "Jugador" << setw(12) << "Resultado" << setw(15) << "Fecha";
+        while(record >> jugador >> resultado >> fecha){
+            cout << setw(12) << jugador << setw(12) << resultado << setw(15) << fecha;
             cout << endl;
         }
     }
     record.close();
 }
 
+void actualizarHistorial(fstream record, bool resultado, const char* nombre){
+    time_t ahora = time(0);
+    char* fecha = ctime(&ahora);
+    string result;
+    record.open("records.txt", ios::app|ios::out);
+    if(!record){
+        cout << "El archivo no se abrio correctamente";
+    }else{
+        if(resultado == true){
+            result = "GANADOR";
+        }else{
+            result = "PERDEDOR";
+        }
+        record << nombre << " " << result << " " << fecha << endl;
+        record.close();
+    }
+}
+
+void liberarMemoria(Lista* lista){
+    Nodo* actual = lista -> cabeza;
+    while(actual != nullptr){
+        Nodo* temp = actual;
+        actual = actual -> siguiente;
+        delete temp;
+    }
+    lista -> cabeza = nullptr;
+    lista -> numElemen = 0;
+    delete lista;
+}
