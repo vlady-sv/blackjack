@@ -1,26 +1,27 @@
 #include <iostream>
-#include <fstream>
+#include <fstream> //Para el manejo de los archivos
 #include <cstdlib>
 #include <ctime>
 #include <cstring>
-#include <iomanip>
+#include <iomanip> //Para las impresiones con setw
+#include <sstream> //Para el manejo de los campos de los archivos
 
 using namespace std;
 
-enum elem{DIAMANTES=1, CORAZONES=2, PICAS=3, TREBOLES=4};
+enum elem{DIAMANTES=1, CORAZONES=2, PICAS=3, TREBOLES=4}; //Elementos en una baraja
 
-struct Juego{
+struct Juego{ //Struct de una carta
     int valor;
     string symbol;
     elem elemen;
 };
 
-struct Nodo{
+struct Nodo{ 
     Juego mano;
     Nodo *siguiente;
 };
 
-struct Lista{
+struct Lista{ //Lista de cartas
     Nodo *cabeza;
     int numElemen;
 };
@@ -144,6 +145,7 @@ void start(fstream& record){
                 nom = false;
             }
         }
+        //Liberamos memoria de cada lista que creamos
         liberarMemoria(mazo);
         liberarMemoria(user);
         liberarMemoria(banca);
@@ -154,6 +156,7 @@ void start(fstream& record){
 
 //Funcion para registrar un usuario
 void registroUser(char* nombre){
+    system("cls");
     cout << setw(10) << "\n\n\t\t\t\t\t\tINICIA EL JUEGO";
     cout << "\n\n\t\t\tDame tu nombre: ";
     cin.ignore();
@@ -246,7 +249,7 @@ void crearMazo(Lista* mazo, Juego& jMazo){
 //Asignando los elementos en el mazo
 void elementos(Lista* mazo, elem elemento){
    const int nCart = 13;
-    bool usado[nCart + 1] = {false}; // Para rastrear qué valores ya se usaron para este elemento
+    bool usado[nCart + 1] = {false}; // Para rastrear los valores que ya se usaron para el elemento que le pasamos
     int auxCarta, cartasAsignadas = 0;
     Nodo* actual = mazo->cabeza;
 
@@ -254,13 +257,14 @@ void elementos(Lista* mazo, elem elemento){
         if (actual->mano.elemen == elemento && actual->mano.valor == 0) {
             do {
                 auxCarta = 1 + rand() % nCart;
-                //Si ya asignamos el valor, volvemos a realizar el proceso
-            } while (usado[auxCarta]); 
+                //Si ya esta asignado el valor, repetimos el proceso
+            }while(usado[auxCarta]); 
 
-            //Marcamos que ya usamos ese valor en el elemento.
+            //Marcamos que ya usamos ese el valor en nuestro vector de usado
             usado[auxCarta] = true;
             cartasAsignadas++;
 
+            //Asignamos que simbolo y valor de la baraja le corresponde a cada carta dependiendo del valor que le asignamos de 1 a 13
             switch(auxCarta){
                 case 1: actual->mano.symbol = "A";
                     actual->mano.valor = 11; 
@@ -376,7 +380,7 @@ bool jugar(char* name, bool nom, Lista* user, Lista* banca, Lista* mazo){
     puntUser = calcularPuntuacion(user);
     
     cout << setw(10) << "\n\t\t\t\t~~ Puntuacion del usuario: " << puntUser << " ~~" << endl << endl;
-    cout << setw(10) << "---------------------------------------------------------------------------------------------------------------------------------" << endl;
+    cout << setw(10) << "------------------------------------------------------------------------------------------------------------------------" << endl;
     //Turno del usuario
     while(true){
         if(puntUser == 21 || puntUser > 21){
@@ -396,14 +400,16 @@ bool jugar(char* name, bool nom, Lista* user, Lista* banca, Lista* mazo){
         if(selec == 2){
             system("cls");
             break;
-            //Opcion de pedir otra carta
+        //Opcion de pedir otra carta
         }else{
             whoPlay = true;
             darCartas(whoPlay, user, banca, mazo);
             system("cls");
         }
 
+        //Turno del usuario si pidio otra carta
         cout << setw(15) << "\n\n\t\t\t\t\t TURNO DEL USUARIO: " << name << endl;
+        cout << setw(15) << "\n\n\t\t\t\t El usuario pide una carta";
         cout << "\n\n\t\t\t\t Cartas:\n";
         actualUser = user->cabeza;
         while(actualUser != nullptr){
@@ -457,23 +463,24 @@ bool jugar(char* name, bool nom, Lista* user, Lista* banca, Lista* mazo){
         cout << setw(10) << "\n\t\t\t\t~~ Puntuacion de la banca: " << puntBanca << " ~~"  << endl;
         system("pause");
 
-        if(puntBanca < 17){
+        if(puntBanca < 17){ //Si la banca tiene una puntuacion menor a 17 pide una carta
             cout << setw(10) << "\n\t\t\t\tLa banca pide una carta" << endl;
             cart = 1;
             whoPlay = false;
             darCartas(whoPlay, user, banca, mazo);
         }
 
-        if(puntBanca >= 17 && puntBanca <= 21){
+        if(puntBanca >= 17 && puntBanca <= 21){ //Si la puntuacion esta entre 17 y 21 se planta
             cout << setw(10) << "\n\t\t\t\tLa banca se planta" << endl;
             break;
         }
-        
+        //Si se pasa de 21 pierde
         if(puntBanca > 21){
             return true;
         }
     }
 
+    //Imprimimos las puntuaciones del usuario y de la banca en caso de que ninguno haya perdido aun
     system("cls");
     cout << setw(10) << "\n\t\t\t\t\t~~ PUNTUACIONES: ~~" << endl;
     //Puntuacion de la banca
@@ -526,14 +533,14 @@ bool jugar(char* name, bool nom, Lista* user, Lista* banca, Lista* mazo){
     delete actualUser;
 
     //Comparacion de resultados si ninguno se paso de 21
-    if(puntBanca == puntUser){
+    if(puntBanca == puntUser){ //Si tienen la misma puntuacion gana la banca
         return false;
     }
-
+    //Si la puntuacion de la banca es mayor que la del usuario, y comprobamos que sea menor de 21, gana la banca
     if(puntBanca > puntUser && puntBanca <= 21){
         return false;
     }
-
+    //Si la puntuacion del usuario es mayor que la de la banca, y comprobamos que sea menor de 21, gana el usuario
     if(puntUser > puntBanca && puntUser <= 21){
         return true;
     }
@@ -543,49 +550,49 @@ bool jugar(char* name, bool nom, Lista* user, Lista* banca, Lista* mazo){
 
 //Dar cartas
 void darCartas(bool wPlay, Lista* user, Lista* banca, Lista* mazo){
-    int elemenMazo = rand()%mazo->numElemen;
+    int elemenMazo = rand()%mazo->numElemen; //Generamos un numero para tomar una carta aleatoriamente del mazo
     Nodo* aux = nullptr;
     Nodo* actual = mazo->cabeza;
 
-    for(int i=0; i<elemenMazo; i++){
-        aux = actual;
-        actual = actual->siguiente;
+    for(int i=0; i<elemenMazo; i++){ //Buscamos la carta que fue seleccionada aleatoriamente
+        aux = actual; //La guardamos en una variable auxiliar
+        actual = actual->siguiente; //Pasamos al siguiente nodo
     }
 
-    if(aux == nullptr){
-        mazo->cabeza = actual-> siguiente;
+    if(aux == nullptr){ //Estabamos o estamos en el primer nodo de la lista
+        mazo->cabeza = actual-> siguiente; //Cambiamos el apuntador de la cabeza al siguiente nodo
     }else{
-        aux->siguiente = actual -> siguiente;
+        aux->siguiente = actual -> siguiente; //Cambiamos el apuntador del nodo al que le sigue (nos saltamos el el anterior)
     }
-    mazo->numElemen--;
+    mazo->numElemen--; //Le quitamos un elemento a la lista porque desvinculamos un nodo
     actual -> siguiente = nullptr;
     //Para el usuario
     if (wPlay == true) {
-        insertarFinal(user, actual->mano);
+        insertarFinal(user, actual->mano); //El nodo desvinculado lo pasamos a la lista del usuario
         //Para la banca
     } else {
-        insertarFinal(banca, actual->mano); 
+        insertarFinal(banca, actual->mano); //El nodo desvinculado lo pasamos a la lista de la banca
     }
 }
 
-//Calcular la puntuacion (suma de las cartas) 
+//Calcular la puntuacion, la suma de las cartas 
 int calcularPuntuacion(Lista* mano) {
     int puntuacion = 0, ases = 0;
     Nodo* actual = mano->cabeza;
+
     while (actual != nullptr) {
         puntuacion = puntuacion + actual->mano.valor;
-        if (actual->mano.symbol == "A") { // Consideramos 'A' como string para "10"
+        if (actual->mano.symbol == "A"){  //verificamos si entre las cartas hay algun as, y los contamos
             ases++;
         }
         actual = actual->siguiente;
     }
 
-    // Ajustar Ases si la puntuación es > 21
     while (puntuacion > 21 && ases > 0) {
-        puntuacion = puntuacion - 10; // Cambiar As de 11 a 1
-        ases--;
+        puntuacion = puntuacion - 10; //Si la puntuacion se pasa de 21 y tenemos un as, cambiamos el valor del as de 11 a 1, y lo repetimos mientras se pase de 21 y tengamos ases
+        ases--; //Si ya cambiamos el valor de un as ya no lo contamos
     }
-    return puntuacion;
+    return puntuacion; 
 }
 
 //Ver historial de juegos
@@ -593,25 +600,32 @@ void verHistorial(fstream& record){
     system("cls");
     cout << "\n\t\t\t\t\t\tHISTORIAL DE JUEGO" << endl;
     string records = "records.txt";
-    record.open(records, ios::in);
-    string jugador, resultado, fecha;
+    record.open(records, ios::in); //Abrimos el archivo que guarda el historial
+    string jugador, resultado, fecha, linea;
     if(!record){
         cout << "El historial esta vacio";
     }else{
-        cout << "\n" << setw(15) << "\t\t\t\t\tJugador" << setw(12) << "Resultado" << setw(15) << "Fecha" << endl;
-        while(record >> jugador >> resultado >> fecha){
-            cout << "\t\t\t\t" <<setw(15) << jugador << setw(12) << resultado << setw(15) << fecha;
-            cout << endl;
+        cout << "\n" << setw(30) << "\t\t\tJugador" << setw(12) << "Resultado" << setw(15) << "Fecha" << endl << endl;
+        //record es el archivo, y linea todo lo que esta escrito antes de un salto de linea
+         while(getline(record, linea)){
+            //Usamos stringstream para separar los campos con "|" en caso de que el usuario de un nombre con espacio
+            stringstream separador(linea);
+            //Separamos la linea en los campos que necesitamos
+            getline(separador, jugador, '|');
+            getline(separador, resultado, '|');
+            getline(separador, fecha, '|');
+            cout << "\t\t" << setw(31) << jugador << setw(12) << resultado << setw(15) << fecha << endl;
         }
     }
-    record.close();
+    record.close(); //Cerramos el archivo
     cout << "\n\t\t\t\t" << system("pause");
 }
 
 void actualizarHistorial(fstream& record, bool resultado, const char* nombre){
-    time_t ahora = time(0);
+    time_t ahora = time(0); //Para obtener la fecha actual
     char fecha[30];
-    strftime(fecha, sizeof(fecha), "%d-%m-%Y", localtime(&ahora));
+    strftime(fecha, sizeof(fecha), "%d-%m-%Y", localtime(&ahora)); //Usamos strftime (formatear la fecha) para obtener la fecha en que se esta jugando
+    //Le pasamos el tamanio de la variable en donde lo queremos guardar y en que formato "dia-mes-anio"
     string result;
     record.open("records.txt", ios::app|ios::out);
     if(!record){
@@ -622,19 +636,20 @@ void actualizarHistorial(fstream& record, bool resultado, const char* nombre){
         }else{
             result = "PERDEDOR";
         }
-        record << nombre << " " << result << " " << fecha << endl;
+        record << nombre << "|" << result << "|" << fecha  << "|" << endl; //Separador "|" por si el usuario da un espacio en el nombre
         record.close();
     }
 }
 
+//Liberar memoria
 void liberarMemoria(Lista* lista){
     Nodo* actual = lista -> cabeza;
-    while(actual != nullptr){
+    while(actual != nullptr){ //Le pasamos una lista y empezamos a recorrerla para eliminar cada nodo
         Nodo* temp = actual;
         actual = actual -> siguiente;
         delete temp;
     }
-    lista -> cabeza = nullptr;
-    lista -> numElemen = 0;
-    delete lista;
+    lista -> cabeza = nullptr; //Eliminamos el apuntador a la cabeza
+    lista -> numElemen = 0; //Los elementos los dejamos en ceros
+    delete lista; //Y eliminamos la lista dinamica que habiamos creado
 }
