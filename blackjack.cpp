@@ -1,3 +1,7 @@
+/* Equipo: Goats */
+/* Integrantes: Vladimir Suarez, Jorge Flores, Fernando Salazar */
+/* PROYECTO: JUEGO DE BLACKJACK */
+
 #include <iostream>
 #include <fstream> //Para el manejo de los archivos
 #include <cstdlib>
